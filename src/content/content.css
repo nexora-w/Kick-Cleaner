@@ -1,0 +1,20 @@
+link[rel="icon"],
+link[rel="shortcut icon"],
+link[rel="apple-touch-icon"] {
+  display: none !important;
+}
+
+img {
+  filter: blur(8px) !important;
+}
+
+#sidebar-wrapper,
+#channel-chatroom,
+#injected-channel-player {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+}

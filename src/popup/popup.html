@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kick Cleaner</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>Kick Cleaner <span class="version" id="version">1.0.0</span></h1>
+  <p>This extension runs on <strong>kick.com</strong> and cleans the page for you.</p>
+  <p><strong>What it does:</strong></p>
+  <ul>
+    <li>Removes the sidebar (<code>#sidebar-wrapper</code>)</li>
+    <li>Removes the channel chatroom (<code>#channel-chatroom</code>)</li>
+    <li>Removes the injected channel player (<code>#injected-channel-player</code>)</li>
+    <li>Removes the site favicon</li>
+    <li>Applies a blur effect to all images</li>
+  </ul>
+  <p>Elements are monitored in real time and removed as soon as they appear.</p>
+  <footer class="footer">Click the extension icon anytime to view this info.</footer>
+  <script src="popup.js"></script>
+</body>
+</html>

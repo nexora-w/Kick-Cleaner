@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Kick Cleaner",
+  "version": "1.0.0",
+  "description": "Removes sidebar, chatroom, and channel player from kick.com and blurs images",
+  "permissions": [],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Kick Cleaner – Extension info"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://kick.com/*", "https://www.kick.com/*"],
+      "css": ["src/content/content.css"],
+      "js": ["src/content/content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
