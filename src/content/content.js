@@ -4,20 +4,11 @@ function removeElement(el) {
   if (el && el.parentNode) el.remove();
 }
 
-function removeMetadata(root) {
-  if (!root) return;
-  const container = root === document && document.head ? document.head : root;
-  if (!container.querySelectorAll) return;
-  container.querySelectorAll('meta').forEach(removeElement);
-}
+// Do not remove meta tags (viewport/charset) – it breaks page init and causes stuck loading.
+// Favicon is hidden via content.css (link[rel="icon"]).
 
-function removeTargetElements(root) {
-  if (!root || !root.querySelector) return;
-  TARGET_IDS.forEach((id) => {
-    const el = root.getElementById ? root.getElementById(id) : root.querySelector(`#${CSS.escape(id)}`);
-    if (el) removeElement(el);
-  });
-}
+// Target elements are hidden via CSS only so the SPA can complete its loading state.
+function removeTargetElements(_root) { /* no-op: we hide via content.css */ }
 
 /** Prevent image from loading by clearing src/srcset */
 function blockImageLoad(img) {
@@ -49,14 +40,7 @@ function blockVideosInRoot(root) {
 
 function processAddedNode(node) {
   if (node.nodeType !== Node.ELEMENT_NODE) return;
-  if (TARGET_IDS.includes(node.id)) {
-    removeElement(node);
-    return;
-  }
-  // Keep favicon visible – do not remove link[rel=icon]
-  if (node.tagName === 'META') {
-    removeElement(node);
-  }
+  // Do not remove TARGET_IDS nodes – hidden via CSS so SPA can finish loading
   if (node.tagName === 'IMG') {
     blockImageLoad(node);
   }
@@ -67,12 +51,10 @@ function processAddedNode(node) {
     blockVideoLoad(node.parentElement);
   }
   removeTargetElements(node);
-  removeMetadata(node);
 }
 
 function runRemovalPass() {
   removeTargetElements(document);
-  removeMetadata(document);
   blockImagesInRoot(document);
   blockVideosInRoot(document);
 }
@@ -226,14 +208,12 @@ function startObserving() {
   // Inject button first so it exists even if later code throws
   createVerificationButton();
   runRemovalPass();
-  removeMetadata(document);
   observer.observe(document.body, { 
     childList: true, 
     subtree: true, 
     attributes: true, 
     attributeFilter: ['style', 'class', 'src', 'srcset'] 
   });
-  observer.observe(document.head, { childList: true, subtree: true });
 
   // Re-inject button after page/SPA has settled (kick.com may render late)
   setTimeout(createVerificationButton, 500);
@@ -247,6 +227,5 @@ if (document.readyState === 'loading') {
 }
 
 runRemovalPass();
-removeMetadata(document);
 
 // https://x.com/ganasty77
