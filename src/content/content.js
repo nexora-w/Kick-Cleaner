@@ -61,6 +61,31 @@ function runRemovalPass() {
   removeTargetElements(document);
   blockImagesInRoot(document);
   blockVideosInRoot(document);
+  highlightVerifiedCategoryCards();
+}
+
+/** On kick.com/category/* pages: find category cards and green-border those whose first-child link is in verified links. */
+function highlightVerifiedCategoryCards() {
+  try {
+    if (!/^https:\/\/(www\.)?kick\.com\/category\//.test(window.location.href)) return;
+    const verified = getVerifiedLinks();
+    if (verified.length === 0) return;
+    const verifiedSet = new Set(verified);
+    // Card has class group/card (and others). First child is the link.
+    const cards = document.querySelectorAll('[class~="group/card"]');
+    for (const card of cards) {
+      const link = card.firstElementChild;
+      if (!link || link.tagName !== 'A') continue;
+      const href = link.href;
+      if (!href) continue;
+      if (verifiedSet.has(href)) {
+        card.style.border = '2px solid #22c55e';
+      } else {
+        card.style.border = '';
+        card.style.borderRadius = '';
+      }
+    }
+  } catch (_) {}
 }
 
 // Throttle heavy work so the page stays responsive (fixes "keeps loading" / can't open Inspect)
