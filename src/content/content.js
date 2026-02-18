@@ -10,22 +10,26 @@ function removeElement(el) {
 // Target elements are hidden via CSS only so the SPA can complete its loading state.
 function removeTargetElements(_root) { /* no-op: we hide via content.css */ }
 
-/** Prevent image from loading by clearing src/srcset */
+const BLOCKED_ATTR = 'data-kick-blocked';
+
+/** Prevent image from loading by clearing src/srcset (skip if already blocked) */
 function blockImageLoad(img) {
   if (!img || img.tagName !== 'IMG') return;
+  if (img.hasAttribute(BLOCKED_ATTR)) return;
+  img.setAttribute(BLOCKED_ATTR, '1');
   img.removeAttribute('src');
   img.removeAttribute('srcset');
-  img.src = '';
 }
 
-/** Prevent video from loading by clearing src and source elements */
+/** Prevent video from loading by clearing src and source elements (skip if already blocked) */
 function blockVideoLoad(video) {
   if (!video || video.tagName !== 'VIDEO') return;
+  if (video.hasAttribute(BLOCKED_ATTR)) return;
+  video.setAttribute(BLOCKED_ATTR, '1');
   video.removeAttribute('src');
   video.querySelectorAll?.('source')?.forEach(removeElement);
   if (video.pause) video.pause();
   if (video.currentTime !== undefined) video.currentTime = 0;
-  video.style.setProperty('opacity', '0', 'important');
 }
 
 function blockImagesInRoot(root) {
@@ -59,6 +63,20 @@ function runRemovalPass() {
   blockVideosInRoot(document);
 }
 
+// Throttle heavy work so the page stays responsive (fixes "keeps loading" / can't open Inspect)
+let removalPassScheduled = false;
+function scheduleRemovalPass() {
+  if (removalPassScheduled) return;
+  removalPassScheduled = true;
+  requestAnimationFrame(() => {
+    removalPassScheduled = false;
+    runRemovalPass();
+    if (!document.getElementById('kick-extension-verify-btn')) {
+      createVerificationButton();
+    }
+  });
+}
+
 const observer = new MutationObserver((mutations) => {
   for (const mutation of mutations) {
     for (const node of mutation.addedNodes) {
@@ -66,18 +84,19 @@ const observer = new MutationObserver((mutations) => {
       blockImagesInRoot(node);
       blockVideosInRoot(node);
     }
-    // If page sets img src/srcset later, clear again so they never load
+    // If Kick re-sets src/srcset on an image, re-block it
     if (mutation.type === 'attributes' && mutation.target.tagName === 'IMG') {
       if (mutation.attributeName === 'src' || mutation.attributeName === 'srcset') {
-        blockImageLoad(mutation.target);
+        const img = mutation.target;
+        // Only re-block if the page actually set a real src (not our own clearing)
+        if (img.getAttribute('src') || img.getAttribute('srcset')) {
+          img.removeAttribute(BLOCKED_ATTR); // allow re-processing
+          blockImageLoad(img);
+        }
       }
     }
   }
-  runRemovalPass();
-  // Re-inject verification button if SPA removed it
-  if (!document.getElementById('kick-extension-verify-btn')) {
-    createVerificationButton();
-  }
+  scheduleRemovalPass();
 });
 
 const VERIFIED_LINKS_KEY = 'kick_verified_links';
@@ -212,7 +231,7 @@ function startObserving() {
     childList: true, 
     subtree: true, 
     attributes: true, 
-    attributeFilter: ['style', 'class', 'src', 'srcset'] 
+    attributeFilter: ['src', 'srcset'] 
   });
 
   // Re-inject button after page/SPA has settled (kick.com may render late)

@@ -8,6 +8,10 @@ img {
   filter: blur(8px) !important;
 }
 
+video {
+  opacity: 0 !important;
+}
+
 #sidebar-wrapper,
 #channel-chatroom,
 #injected-channel-player {
