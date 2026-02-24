@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Kick Cleaner",
   "version": "1.0.0",
-  "description": "Removes sidebar, chatroom, and channel player from kick.com and blurs images",
+  "description": "Minimal, distraction-free Kick.com: hides sidebar, chat, and channel player; blurs images and hides video. Optional verified-links highlights on category pages.",
   "permissions": ["activeTab", "scripting"],
   "icons": {
     "16": "icons/icon16.png",
