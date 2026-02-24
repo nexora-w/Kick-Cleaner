@@ -5,23 +5,55 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kick Cleaner</title>
   <link rel="stylesheet" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <header class="popup-header">
-    <img src="../../icons/logo.svg" alt="Kick Cleaner" class="popup-logo" width="40" height="40">
-    <h1>Kick Cleaner <span class="version" id="version">1.0.0</span></h1>
-  </header>
-  <p>This extension runs on <strong>kick.com</strong> and cleans the page for you.</p>
-  <p><strong>What it does:</strong></p>
-  <ul>
-    <li>Removes the sidebar (<code>#sidebar-wrapper</code>)</li>
-    <li>Removes the channel chatroom (<code>#channel-chatroom</code>)</li>
-    <li>Removes the injected channel player (<code>#injected-channel-player</code>)</li>
-    <li>Removes the site favicon</li>
-    <li>Applies a blur effect to all images</li>
-  </ul>
-  <p>Elements are monitored in real time and removed as soon as they appear.</p>
-  <footer class="footer">Click the extension icon anytime to view this info.</footer>
+  <div class="popup">
+    <header class="header">
+      <div class="header-brand">
+        <img src="../../icons/logo.svg" alt="" class="logo" width="36" height="36">
+        <div class="header-text">
+          <h1 class="title">Kick Cleaner</h1>
+          <span class="version" id="version">1.0.0</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="card section-extracted" aria-label="Extracted from this page">
+        <h2 class="card-title">From this page</h2>
+
+        <div id="extracted-loading" class="state state-loading" role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Scanning page…</span>
+        </div>
+        <div id="extracted-error" class="state state-error" hidden role="alert"></div>
+
+        <div id="extracted-content" class="content" hidden>
+          <div class="block">
+            <h3 class="block-title">
+              <span class="block-icon" aria-hidden="true">@</span>
+              Emails
+            </h3>
+            <ul id="extracted-emails" class="item-list" aria-label="Extracted emails"></ul>
+          </div>
+          <div class="block">
+            <h3 class="block-title">
+              <span class="block-icon" aria-hidden="true">↗</span>
+              Links
+            </h3>
+            <ul id="extracted-links" class="item-list" aria-label="Extracted links"></ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Open this popup anytime to refresh.
+    </footer>
+  </div>
   <script src="popup.js"></script>
 </body>
 </html>

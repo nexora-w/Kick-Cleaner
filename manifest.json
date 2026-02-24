@@ -3,7 +3,7 @@
   "name": "Kick Cleaner",
   "version": "1.0.0",
   "description": "Removes sidebar, chatroom, and channel player from kick.com and blurs images",
-  "permissions": [],
+  "permissions": ["activeTab", "scripting"],
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
