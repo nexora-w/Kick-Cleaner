@@ -1,4 +1,5 @@
 const TARGET_IDS = ['sidebar-wrapper', 'channel-chatroom', 'injected-channel-player'];
+const KC_PANEL_ID = 'kick-cleaner-panel';
 
 function removeElement(el) {
   if (el && el.parentNode) el.remove();
@@ -96,9 +97,6 @@ function scheduleRemovalPass() {
   requestAnimationFrame(() => {
     removalPassScheduled = false;
     runRemovalPass();
-    if (!document.getElementById('kick-extension-verify-btn')) {
-      createVerificationButton();
-    }
   });
 }
 
@@ -206,40 +204,196 @@ function savePageToStorage() {
   return url;
 }
 
-function createVerificationButton() {
-  if (document.getElementById('kick-extension-verify-btn')) return;
-  const btn = document.createElement('button');
-  btn.id = 'kick-extension-verify-btn';
-  btn.textContent = 'Verify & Save';
-  btn.setAttribute('type', 'button');
-  Object.assign(btn.style, {
-    position: 'fixed',
-    bottom: '20px',
-    right: '20px',
-    zIndex: '2147483647',
-    padding: '10px 16px',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#fff',
-    backgroundColor: '#53fc18',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-    fontFamily: 'inherit',
+/** Extract emails and http(s) links from the current page (same logic as popup). */
+function extractFromPage() {
+  const emails = new Set();
+  const linkRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const text = document.body?.innerText ?? document.body?.textContent ?? '';
+  let m;
+  while ((m = linkRegex.exec(text)) !== null) emails.add(m[0]);
+  const emailLike = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  document.querySelectorAll('a[href^="mailto:"]').forEach((a) => {
+    const href = (a.getAttribute('href') || '').replace(/^mailto:/i, '').trim();
+    const addr = href.split(/[?&]/)[0].trim();
+    if (addr && emailLike.test(addr)) emails.add(addr);
   });
-  btn.addEventListener('click', () => {
+  const websiteLinks = new Set();
+  document.querySelectorAll('a[href]').forEach((a) => {
+    const href = (a.href || a.getAttribute('href') || '').trim();
+    if (href && (href.startsWith('http://') || href.startsWith('https://'))) websiteLinks.add(href);
+  });
+  const links = (websiteLinks.size ? [...websiteLinks] : []).filter(
+    (url) => !url.toLowerCase().includes('kick.com')
+  );
+  return { emails: [...emails], links };
+}
+
+function createCopyButton(value) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'kc-btn-copy';
+  btn.title = 'Copy';
+  btn.setAttribute('aria-label', 'Copy to clipboard');
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      await navigator.clipboard.writeText(value);
+      btn.classList.add('kc-copied');
+      btn.title = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('kc-copied');
+        btn.title = 'Copy';
+      }, 1500);
+    } catch (_) {}
+  });
+  return btn;
+}
+
+function renderKcList(listEl, items, isLink) {
+  listEl.innerHTML = '';
+  if (items.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'kc-item-row kc-item-row--empty';
+    li.innerHTML = '<span class="kc-item-text">None found</span>';
+    listEl.appendChild(li);
+    return;
+  }
+  items.forEach((item) => {
+    const li = document.createElement('li');
+    const row = document.createElement('div');
+    row.className = 'kc-item-row';
+    const text = document.createElement(isLink ? 'a' : 'span');
+    text.className = 'kc-item-text';
+    if (isLink) {
+      text.href = item;
+      text.target = '_blank';
+      text.rel = 'noopener noreferrer';
+    }
+    text.textContent = item;
+    row.appendChild(text);
+    row.appendChild(createCopyButton(item));
+    li.appendChild(row);
+    listEl.appendChild(li);
+  });
+}
+
+function ensureKickCleanerFont() {
+  if (document.getElementById('kc-font-link')) return;
+  const link = document.createElement('link');
+  link.id = 'kc-font-link';
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap';
+  (document.head || document.documentElement).appendChild(link);
+}
+
+function createKickCleanerPanel() {
+  if (document.getElementById(KC_PANEL_ID)) return;
+  ensureKickCleanerFont();
+  const panel = document.createElement('div');
+  panel.id = KC_PANEL_ID;
+  panel.className = 'kc-panel';
+  const version = (typeof chrome !== 'undefined' && chrome.runtime?.getManifest)
+    ? chrome.runtime.getManifest().version
+    : '1.0.0';
+  const logoUrl = (typeof chrome !== 'undefined' && chrome.runtime?.getURL)
+    ? chrome.runtime.getURL('icons/logo.svg')
+    : '';
+  panel.innerHTML = `
+    <header class="kc-header">
+      <div class="kc-header-brand">
+        <img src="${logoUrl}" alt="" class="kc-logo" width="36" height="36">
+        <div class="kc-header-text">
+          <h1 class="kc-title">Kick Cleaner</h1>
+          <span class="kc-version" id="kc-version">${version}</span>
+        </div>
+      </div>
+      <button type="button" id="kc-toggle" class="kc-toggle" title="Collapse panel" aria-label="Collapse panel">−</button>
+    </header>
+    <section class="kc-copy-current-row" aria-label="Copy current page link">
+      <button type="button" id="kc-copy-current-link" class="kc-btn-copy-current" title="Copy current page URL">
+        <span class="kc-btn-copy-current-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </span>
+        <span class="kc-btn-copy-current-label">Copy current link</span>
+      </button>
+      <span id="kc-copy-current-feedback" class="kc-copy-current-feedback" hidden aria-live="polite">Copied!</span>
+    </section>
+    <section class="kc-verify-row" aria-label="Verify and save this page">
+      <button type="button" id="kc-verify-save" class="kc-btn-verify" title="Add this page to verified links">Verify & Save</button>
+    </section>
+    <main class="kc-main">
+      <section class="kc-card kc-section-extracted" aria-label="Extracted from this page">
+        <h2 class="kc-card-title">From this page</h2>
+        <div id="kc-extracted-error" class="kc-state kc-state-error" hidden role="alert"></div>
+        <div id="kc-extracted-content" class="kc-content">
+          <div class="kc-block">
+            <h3 class="kc-block-title"><span class="kc-block-icon" aria-hidden="true">@</span> Emails</h3>
+            <ul id="kc-extracted-emails" class="kc-item-list" aria-label="Extracted emails"></ul>
+          </div>
+          <div class="kc-block">
+            <h3 class="kc-block-title"><span class="kc-block-icon" aria-hidden="true">↗</span> Links</h3>
+            <ul id="kc-extracted-links" class="kc-item-list" aria-label="Extracted links"></ul>
+          </div>
+        </div>
+      </section>
+    </main>
+  `;
+  (document.body || document.documentElement).appendChild(panel);
+
+  const copyCurrentBtn = panel.querySelector('#kc-copy-current-link');
+  const copyCurrentFeedback = panel.querySelector('#kc-copy-current-feedback');
+  copyCurrentBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      copyCurrentFeedback.textContent = 'Copied!';
+      copyCurrentFeedback.hidden = false;
+      setTimeout(() => { copyCurrentFeedback.hidden = true; }, 2000);
+    } catch (_) {
+      copyCurrentFeedback.textContent = 'Failed';
+      copyCurrentFeedback.hidden = false;
+      setTimeout(() => { copyCurrentFeedback.hidden = true; }, 2000);
+    }
+  });
+
+  const verifyBtn = panel.querySelector('#kc-verify-save');
+  verifyBtn.addEventListener('click', () => {
     savePageToStorage();
-    const prev = btn.textContent;
-    btn.textContent = 'Saved!';
-    btn.style.backgroundColor = '#2ea043';
+    const prev = verifyBtn.textContent;
+    verifyBtn.textContent = 'Saved!';
+    verifyBtn.classList.add('kc-btn-verify--saved');
     setTimeout(() => {
-      btn.textContent = prev;
-      btn.style.backgroundColor = '#53fc18';
+      verifyBtn.textContent = prev;
+      verifyBtn.classList.remove('kc-btn-verify--saved');
     }, 1500);
   });
-  // Append to documentElement so button persists when SPA replaces body
-  (document.body || document.documentElement).appendChild(btn);
+
+  const toggleBtn = panel.querySelector('#kc-toggle');
+  toggleBtn.addEventListener('click', () => {
+    panel.classList.toggle('kc-panel--collapsed');
+    toggleBtn.textContent = panel.classList.contains('kc-panel--collapsed') ? '+' : '−';
+    toggleBtn.title = panel.classList.contains('kc-panel--collapsed') ? 'Expand panel' : 'Collapse panel';
+  });
+
+  const errorEl = panel.querySelector('#kc-extracted-error');
+  const contentEl = panel.querySelector('#kc-extracted-content');
+  const emailsList = panel.querySelector('#kc-extracted-emails');
+  const linksList = panel.querySelector('#kc-extracted-links');
+
+  function setStatus(err, showContent) {
+    errorEl.hidden = !err;
+    if (err) errorEl.textContent = err;
+    contentEl.hidden = !showContent;
+  }
+
+  try {
+    const data = extractFromPage();
+    setStatus(false, true);
+    renderKcList(emailsList, data.emails, false);
+    renderKcList(linksList, data.links, true);
+  } catch (e) {
+    setStatus(e?.message || 'Could not read page.', false);
+  }
 }
 
 function startObserving() {
@@ -249,8 +403,8 @@ function startObserving() {
   }
   // Show warning first if this page is in verified links
   showVerifiedPageWarning();
-  // Inject button first so it exists even if later code throws
-  createVerificationButton();
+  // Kick Cleaner panel (top-right, includes Verify & Save)
+  createKickCleanerPanel();
   runRemovalPass();
   observer.observe(document.body, { 
     childList: true, 
@@ -259,9 +413,9 @@ function startObserving() {
     attributeFilter: ['src', 'srcset'] 
   });
 
-  // Re-inject button after page/SPA has settled (kick.com may render late)
-  setTimeout(createVerificationButton, 500);
-  setTimeout(createVerificationButton, 2000);
+  // Re-inject after page/SPA has settled (kick.com may replace body)
+  setTimeout(createKickCleanerPanel, 500);
+  setTimeout(createKickCleanerPanel, 2000);
 }
 
 if (document.readyState === 'loading') {

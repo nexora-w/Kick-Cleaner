@@ -6,8 +6,8 @@
 Thumbs.db
 
 # Editor
-.vscode/
 .idea/
+temp_auto_push.bat
 *.swp
 *.swo
 *~
@@ -18,3 +18,5 @@ npm-debug.log*
 
 # Dependencies (if you add build tooling later)
 node_modules/
+.gitignore
+temp_interactive_push.bat

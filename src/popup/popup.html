@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="popup">
+  <div class="popup popup--minimal">
     <header class="header">
       <div class="header-brand">
         <img src="../../icons/logo.svg" alt="" class="logo" width="36" height="36">
@@ -20,39 +20,9 @@
         </div>
       </div>
     </header>
-
-    <main class="main">
-      <section class="card section-extracted" aria-label="Extracted from this page">
-        <h2 class="card-title">From this page</h2>
-
-        <div id="extracted-loading" class="state state-loading" role="status">
-          <span class="spinner" aria-hidden="true"></span>
-          <span>Scanning page…</span>
-        </div>
-        <div id="extracted-error" class="state state-error" hidden role="alert"></div>
-
-        <div id="extracted-content" class="content" hidden>
-          <div class="block">
-            <h3 class="block-title">
-              <span class="block-icon" aria-hidden="true">@</span>
-              Emails
-            </h3>
-            <ul id="extracted-emails" class="item-list" aria-label="Extracted emails"></ul>
-          </div>
-          <div class="block">
-            <h3 class="block-title">
-              <span class="block-icon" aria-hidden="true">↗</span>
-              Links
-            </h3>
-            <ul id="extracted-links" class="item-list" aria-label="Extracted links"></ul>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer">
-      Open this popup anytime to refresh.
-    </footer>
+    <p class="popup-message">
+      The panel appears in the <strong>top-right</strong> of Kick.com pages. Open <a href="https://kick.com" target="_blank" rel="noopener noreferrer">kick.com</a> to see extracted emails, links, and copy the current page URL.
+    </p>
   </div>
   <script src="popup.js"></script>
 </body>
